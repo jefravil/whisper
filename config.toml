@@ -1,0 +1,92 @@
+[general]
+language = "es"
+model = "large-v3"
+compute_type = "int8"
+device = "cpu"
+
+[hotkey]
+combination = "<ctrl>+<shift>+?"
+
+[audio]
+device = "auto"
+sample_rate = 16000
+channels = 1
+
+[clipboard]
+enabled = true
+
+[streaming]
+enabled = false
+
+[noise_gate]
+enabled = true
+silence_seconds = 10.0
+
+[voice_commands]
+enabled = true
+
+[voice_commands.es]
+commands = [
+    { trigger = "nueva línea", action = "newline" },
+    { trigger = "punto", action = "insert", value = "." },
+    { trigger = "coma", action = "insert", value = "," },
+    { trigger = "signo de interrogación", action = "insert", value = "?" },
+    { trigger = "signo de exclamación", action = "insert", value = "!" },
+    { trigger = "dos puntos", action = "insert", value = ":" },
+    { trigger = "punto y coma", action = "insert", value = ";" },
+    { trigger = "borrar última palabra", action = "delete_last_word" },
+    { trigger = "espacio", action = "insert", value = " " },
+]
+
+[voice_commands.en]
+commands = [
+    { trigger = "new line", action = "newline" },
+    { trigger = "period", action = "insert", value = "." },
+    { trigger = "comma", action = "insert", value = "," },
+    { trigger = "question mark", action = "insert", value = "?" },
+    { trigger = "exclamation mark", action = "insert", value = "!" },
+    { trigger = "colon", action = "insert", value = ":" },
+    { trigger = "semicolon", action = "insert", value = ";" },
+    { trigger = "delete last word", action = "delete_last_word" },
+    { trigger = "space", action = "insert", value = " " },
+]
+
+[voice_commands.fr]
+commands = [
+    { trigger = "nouvelle ligne", action = "newline" },
+    { trigger = "point", action = "insert", value = "." },
+    { trigger = "virgule", action = "insert", value = "," },
+    { trigger = "point d'interrogation", action = "insert", value = "?" },
+    { trigger = "point d'exclamation", action = "insert", value = "!" },
+    { trigger = "supprimer dernier mot", action = "delete_last_word" },
+]
+
+[voice_commands.de]
+commands = [
+    { trigger = "neue Zeile", action = "newline" },
+    { trigger = "Punkt", action = "insert", value = "." },
+    { trigger = "Komma", action = "insert", value = "," },
+    { trigger = "Fragezeichen", action = "insert", value = "?" },
+    { trigger = "letztes Wort löschen", action = "delete_last_word" },
+]
+
+[voice_commands.pt]
+commands = [
+    { trigger = "nova linha", action = "newline" },
+    { trigger = "ponto", action = "insert", value = "." },
+    { trigger = "vírgula", action = "insert", value = "," },
+    { trigger = "apagar última palavra", action = "delete_last_word" },
+]
+
+[output]
+print_to_terminal = true
+
+[feedback]
+audio_feedback = true
+
+[transcription]
+hotwords = ""
+initial_prompt = ""
+hallucination_silence_threshold = 0.5
+repetition_penalty = 1.1
+no_repeat_ngram_size = 3
