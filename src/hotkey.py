@@ -8,6 +8,7 @@ Runs in a dedicated daemon thread to avoid blocking the main thread.
 """
 
 import logging
+import platform
 import threading
 import time
 from typing import Callable
@@ -15,6 +16,8 @@ from typing import Callable
 from pynput import keyboard
 
 log = logging.getLogger(__name__)
+
+_IS_WINDOWS = platform.system() == "Windows"
 
 # Minimum time between toggle events to avoid double-triggers
 _DEBOUNCE_SECONDS = 0.4
@@ -66,7 +69,16 @@ def parse_hotkey(combination: str) -> frozenset:
         elif part in ("<f12>", "f12"):
             keys.add(keyboard.Key.f12)
         elif len(part) == 1:
-            keys.add(keyboard.KeyCode.from_char(part))
+            if _IS_WINDOWS:
+                import ctypes
+                scan = ctypes.windll.user32.VkKeyScanW(ord(part))
+                vk = scan & 0xFF
+                if scan != -1 and scan != 0xFFFF and vk != 0xFF:
+                    keys.add(keyboard.KeyCode.from_vk(vk, char=part))
+                else:
+                    keys.add(keyboard.KeyCode.from_char(part))
+            else:
+                keys.add(keyboard.KeyCode.from_char(part))
         else:
             log.warning("Unknown key in hotkey: '%s'", part)
 
@@ -127,13 +139,20 @@ class HotkeyListener:
         self._last_toggle_time = 0.0
 
     def _normalize_key(self, key):
-        """Normalize key variants (left/right modifiers → left)."""
+        """Normalize key variants (left/right modifiers → left).
+
+        On Windows, also normalize KeyCode to vk-only so hash/eq matches
+        the target keys from parse_hotkey (which also use vk on Windows).
+        Without this, Ctrl corrupts the char translation and matching fails.
+        """
         if key == keyboard.Key.ctrl_r:
             return keyboard.Key.ctrl_l
         if key == keyboard.Key.shift_r:
             return keyboard.Key.shift_l
         if key == keyboard.Key.alt_r:
             return keyboard.Key.alt_l
+        if _IS_WINDOWS and isinstance(key, keyboard.KeyCode) and key.vk is not None:
+            return keyboard.KeyCode.from_vk(key.vk)
         return key
 
     def _on_press(self, key) -> None:

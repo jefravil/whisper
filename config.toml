@@ -5,7 +5,7 @@ compute_type = "int8"
 device = "cpu"
 
 [hotkey]
-combination = "<ctrl>+<shift>+?"
+combination = "<ctrl>+<shift>+space"
 
 [audio]
 device = "auto"
@@ -13,7 +13,7 @@ sample_rate = 16000
 channels = 1
 
 [clipboard]
-enabled = true
+enabled = false
 
 [streaming]
 enabled = false

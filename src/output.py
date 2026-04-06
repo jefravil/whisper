@@ -79,36 +79,54 @@ def _clipboard_paste_linux(text: str) -> bool:
     return True
 
 
-def _clipboard_paste_windows(text: str) -> bool:
-    """Set clipboard via win32 API and paste via pynput Ctrl+V."""
+def _set_clipboard_windows(text: str) -> bool:
+    """Set clipboard via Win32 API (64-bit safe)."""
     try:
         CF_UNICODETEXT = 13
         user32 = ctypes.windll.user32
         kernel32 = ctypes.windll.kernel32
 
+        # Must set restype to c_void_p for 64-bit pointer safety.
+        # Without this, pointers get truncated to 32 bits and the copy fails.
+        kernel32.GlobalAlloc.restype = ctypes.c_void_p
+        kernel32.GlobalLock.restype = ctypes.c_void_p
+
         if not user32.OpenClipboard(0):
+            log.warning("Failed to open clipboard")
             return False
         user32.EmptyClipboard()
 
-        # Allocate global memory for the text (UTF-16)
-        byte_len = (len(text) + 1) * 2
+        buf = ctypes.create_unicode_buffer(text)
+        byte_len = ctypes.sizeof(buf)
         h_mem = kernel32.GlobalAlloc(0x0042, byte_len)  # GMEM_MOVEABLE | GMEM_ZEROINIT
+        if not h_mem:
+            user32.CloseClipboard()
+            return False
         p_mem = kernel32.GlobalLock(h_mem)
-        ctypes.cdll.msvcrt.wcscpy_s(ctypes.c_wchar_p(p_mem), len(text) + 1, text)
+        if not p_mem:
+            user32.CloseClipboard()
+            return False
+        ctypes.memmove(p_mem, buf, byte_len)
         kernel32.GlobalUnlock(h_mem)
         user32.SetClipboardData(CF_UNICODETEXT, h_mem)
         user32.CloseClipboard()
-
-        time.sleep(0.05)
-        _keyboard.press(Key.ctrl_l)
-        _keyboard.press("v")
-        _keyboard.release("v")
-        _keyboard.release(Key.ctrl_l)
-        time.sleep(0.05)
         return True
     except Exception as e:
-        log.warning("Windows clipboard paste failed: %s", e)
+        log.warning("Windows clipboard set failed: %s", e)
         return False
+
+
+def _clipboard_paste_windows(text: str) -> bool:
+    """Set clipboard and paste via Ctrl+V."""
+    if not _set_clipboard_windows(text):
+        return False
+    time.sleep(0.05)
+    _keyboard.press(Key.ctrl_l)
+    _keyboard.press('v')
+    _keyboard.release('v')
+    _keyboard.release(Key.ctrl_l)
+    time.sleep(0.05)
+    return True
 
 
 def type_text(text: str) -> None:
@@ -139,25 +157,10 @@ def type_text(text: str) -> None:
 def copy_to_clipboard(text: str) -> None:
     """Copy text to system clipboard."""
     if _IS_WINDOWS:
-        _clipboard_paste_windows.__wrapped__ = True  # just set clipboard
-        try:
-            CF_UNICODETEXT = 13
-            user32 = ctypes.windll.user32
-            kernel32 = ctypes.windll.kernel32
-            if not user32.OpenClipboard(0):
-                log.error("Failed to open clipboard")
-                return
-            user32.EmptyClipboard()
-            byte_len = (len(text) + 1) * 2
-            h_mem = kernel32.GlobalAlloc(0x0042, byte_len)
-            p_mem = kernel32.GlobalLock(h_mem)
-            ctypes.cdll.msvcrt.wcscpy_s(ctypes.c_wchar_p(p_mem), len(text) + 1, text)
-            kernel32.GlobalUnlock(h_mem)
-            user32.SetClipboardData(CF_UNICODETEXT, h_mem)
-            user32.CloseClipboard()
+        if _set_clipboard_windows(text):
             log.debug("Copied to clipboard")
-        except Exception as e:
-            log.error("Failed to copy to clipboard: %s", e)
+        else:
+            log.error("Failed to copy to clipboard")
     else:
         if _set_clipboard_linux(text):
             log.debug("Copied to clipboard via xsel")
